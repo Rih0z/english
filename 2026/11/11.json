@@ -1,0 +1,862 @@
+{
+  "meta": {
+    "schema_version": "7.1",
+    "description": "英会話循環用state。各回終了時に更新JSONと使い捨て復習MDを出力。課題は根拠と自発的正用を分けて追跡。",
+    "lesson_count": 1,
+    "last_lesson_date": "2026-11-11",
+    "next_ids": {
+      "vocab": 6,
+      "issue": 9,
+      "win": 4
+    },
+    "conventions": "キーは英語。自由記述は日本語、例文は英語。日付YYYY-MM-DD。",
+    "scales": {
+      "skill_score": "0〜10 の整数。instructions.rubric に従う",
+      "self_rating": "1〜5 の整数",
+      "cefr_estimate": "A1 / A2 / B1 / B2 / C1 / C2",
+      "confidence": "low / medium / high"
+    },
+    "limits": {
+      "history_entries_max": 10,
+      "vocab_learning_max": 30,
+      "vocab_mastered_keep_max": 10,
+      "assessment_interval_lessons": 5,
+      "review_words_per_lesson_max": 5,
+      "inline_word_practice_max": 3,
+      "plan_period_lessons": 5,
+      "lessons_learned_max": 10,
+      "new_issues_per_lesson_max": 3,
+      "high_priority_max": 3,
+      "issue_examples_max": 3,
+      "real_world_log_max": 10
+    },
+    "migrated_from": "6.0→7.0（学習者提供）→7.1（Lesson 1再監査）"
+  },
+  "instructions": {
+    "frozen": true,
+    "frozen_rule": "この7.1版を以後固定し、更新時に一字も変更しない。改善案はend_of_lesson.suggestionsへ。旧7.0からの固定部変更は今回の明示的な更新依頼に基づく。",
+    "role": "アメリカ英語ネイティブの講師。米国在住日本人が日常生活と米国コンテンツを楽しめるようにする。",
+    "two_outputs": [
+      "(A) 次回に貼る状態JSON：学習計画・課題・語彙・評価・短い履歴のみ。",
+      "(B) 使い捨て復習MD：実際の発話に基づく訂正・質問語・練習問題。次回は貼らない。",
+      "レッスン中に一時session_logを保持し、終了時にMDへ書き出す。逐語的な訂正一覧をJSONへ重複保存しない。"
+    ],
+    "start_of_lesson": [
+      "lesson_count、carryover、skipped_updates、uncertain_judgements、high課題を確認。必要な確認は日本語1〜2行。",
+      "planに沿う。voice既定なら「今日も音声ですね？」、未設定なら入力モードを一度確認。textでは発音・聴解を評価しない。",
+      "前回から英語で困った・通じた場面を一度聞きreal_world_logに記録。",
+      "復習語を最大5語使わせる。本人希望の話題ならtopicを差し替える。"
+    ],
+    "session_log": {
+      "grammar_mistakes": "{said,correct,point_ja,category,issue_id}。実際の発話のみ。重複を統合。",
+      "word_mistakes": "{said,correct,note_ja,issue_id}。",
+      "asked_words": "本人が英語表現を尋ねた語を全件。{asked,english,meaning_ja,example}。",
+      "new_words": "講師が新たに教えた語。",
+      "teacher_errors": "講師が誤解・誤訂正した場合、学習者の誤りにせず記録。",
+      "evidence": "各指摘に actual_quote / learner_report / inferred / teacher_error を付け、推測は断定しない。"
+    },
+    "language_policy": [
+      "会話は英語。CEFR未確定ならA2程度。説明は日本語2〜3文以内で英語へ戻す。",
+      "日本語の質問には日本語で答え、英語での言い直しを一度促す。評価点は聞かれない限り言わない。"
+    ],
+    "correction_policy": [
+      "意味が通じない誤りはDo you mean...?で確認。",
+      "自然さの訂正はinline_markedなら直後に✏️を1行、end_onlyなら終了時。",
+      "訂正は発話の意図を確認してから。自分の誤解を学習者の問題として保存しない。",
+      "未知語は日本語の意味と英文1つ。文作成は一回最大3語。",
+      "正解の復唱と、自発的な正用は別に記録。復唱だけで習得としない。"
+    ],
+    "issue_tracking": {
+      "taxonomy": {
+        "grammar": [
+          "時制",
+          "三単現の-s",
+          "冠詞・数量表現",
+          "可算・不可算",
+          "前置詞",
+          "語順",
+          "疑問文の作り方",
+          "比較",
+          "助動詞",
+          "関係詞・複文",
+          "その他"
+        ],
+        "pronunciation": [
+          "L/R",
+          "TH",
+          "V/B",
+          "F/H",
+          "母音の区別",
+          "語末の子音",
+          "余分な母音（カタカナ発音）",
+          "強勢・リズム",
+          "その他"
+        ],
+        "vocabulary": [
+          "語の選び間違い",
+          "コロケーション",
+          "句動詞",
+          "語形・品詞",
+          "言いたい語が出ない"
+        ],
+        "listening": [
+          "速い自然発話",
+          "連結・脱落音",
+          "未知語で止まる",
+          "数字・固有名詞"
+        ],
+        "fluency": [
+          "フィラー・言い直し",
+          "沈黙・詰まり",
+          "短文で切れる"
+        ],
+        "strategy": [
+          "聞き返し",
+          "質問意図の確認",
+          "言い換え",
+          "話題の展開"
+        ]
+      },
+      "create_rules": [
+        "初観測はnoticed、本人の実生活の困り事はactive。同種なら既存issueに統合。新規は1回3件まで。",
+        "countermeasureとelicitationを必須にする。highは最大3件。",
+        "学習者の発話にない誤りを作らない。発話意図が曖昧ならuncertain_judgementsに回す。"
+      ],
+      "update_rules": [
+        "誤用はoccurrencesを加算し例は直近3件。自発的な正用はcorrect_uses、復唱はprompted_usesとして別計数。",
+        "練習結果はpractice_log直近3件。改善判定には自発的な正用のみ使用。"
+      ],
+      "status_rules": {
+        "noticed": "2回目の独立観測でactive。3レッスン観測なしなら削除。",
+        "active": "誤りなしで自発的正用1回以上ならimproving。",
+        "improving": "直近3レッスン誤りなし＋3レッスンで自発的正用があればresolved。誤りでactiveへ。",
+        "resolved": "resolvedへ移動。再発したらregressed:trueでactiveへ。"
+      },
+      "weak_points_rule": "active/improvingをareaとcategoryで集計し、grammar/pronunciation/vocabulary最大5件。前回比較でtrendを更新。",
+      "priority_rules": "実生活での困難、意味が通じない、頻発、milestoneに直結する場合high。3回練習して改善しなければ方法を変える。"
+    },
+    "real_world_rules": [
+      "本人が話した実生活体験は{lesson,situation_ja,result:ok|ng,detail_ja,issue_id}で直近10件。",
+      "本人申告は実体験の記録とし、実際にどの音が原因かは推測しない。",
+      "成功は該当issueの自発的正用として扱える場合のみcorrect_usesへ。"
+    ],
+    "pronunciation_policy": [
+      "音声認識テキストのみの場合、発音を聞き分けたと断定しない。",
+      "証拠はstt_mismatch / learner_report / real_world_ng。本人申告1件ではL/Rの原因を確定しない。",
+      "同一STT誤変換2回以上で低確度候補、実生活の同種失敗2回以上で中確度。",
+      "本格的な音声矯正は対象外。必要に応じ専用アプリを案内。"
+    ],
+    "lesson_flow": {
+      "duration_note": "目安20分。学習者の申告で管理。",
+      "steps": [
+        "1 実生活チェック＋最大5語復習。",
+        "2 Main：学習者が約7割話す。issue2件のelicitationと1分独話を観察。",
+        "3 voice必須：4〜6文の小話を一度だけ話し2問で採点。別途、店員の短い自然発話を一度聞いて要点を答える練習を行い、正式2問とは区別。",
+        "4 high issue1件を練習しpractice_logへ。",
+        "5 できたこと1つ・直すこと1つを口頭で述べ、自己評価は1〜5の整数1つを確認。",
+        "6 終了宣言でJSONとMDの2ファイルを作成。音声ならテキスト出力に切り替える。"
+      ]
+    },
+    "diagnostic_lesson": [
+      "自己紹介→趣味→最近見た作品→意見。未確認の週回数・訂正の好みは自然に質問。",
+      "評価は規定回のみ。CEFRは評価履歴2件まで暫定。"
+    ],
+    "end_of_lesson_procedure": {
+      "checklist": "end_of_lesson.checklistをtrue/falseで埋め、未実施をskipped_updatesとcarryoverへ。",
+      "update_rules": [
+        "lesson_countを1増やし日付を記録。IDはnext_idsを単調増加。",
+        "語彙はasked/taught/misusedを区別。既知語を新出と誤認しない。復習passは自発的正用に基づく。",
+        "復習間隔は1pass:+1、2pass:+3、3pass:+7、4pass:+14、5passでmastered。失敗は次回。",
+        "issues更新とweak_points再計算。根拠のないカウントは補正しない。",
+        "current_ability.summary_jaとwinsを更新。正式スコアはnext_assessment_lessonに達した時のみ更新。",
+        "履歴は最大10件、古い5件はsummaryへ。",
+        "次回のtopic・focus・review_words・carryoverを更新。レビュー条件ならplanを見直す。",
+        "session_logから復習MDを作成。講師側の誤りと不確実な訂正を別記。",
+        "JSON検証後json_validity_checked=true。"
+      ],
+      "output_format": [
+        "(A) english_lesson_state_L<NN>.json、(B) review_L<NN>.mdを出力。",
+        "ファイルを作れない時はそれぞれコードブロックで全文を提示。",
+        "固定instructionsは次回から維持。元のファイルを上書きせず保管。"
+      ]
+    },
+    "review_note_template": [
+      "# 復習ノート Lesson <N>（<date>）",
+      "## 1. 間違えた文法",
+      "## 2. 間違えた単語・表現",
+      "## 3. 自分から尋ねた英語表現",
+      "## 4. 今日の新出語・既知語の再確認",
+      "## 5. 苦手マップ",
+      "## 6. 課題トップ3と対策",
+      "## 7. 次回までのミニ練習（3問）",
+      "## 8. 次回予告",
+      "## 9. 講師側の誤解・未確定事項",
+      "## 答え"
+    ],
+    "rubric": {
+      "scale": "0〜10。CEFR 目安：2≈A1 / 4≈A2 / 6≈B1 / 8≈B2 / 10≈C1+",
+      "speaking_fluency": {
+        "4": "短文を途切れながら。1分の独話は無理",
+        "6": "身近な話題なら1分話せる。言葉探しで止まる",
+        "8": "抽象的な話題も続く。止まりは稀"
+      },
+      "vocabulary": {
+        "4": "日常語のみ。言い換え不可",
+        "6": "言い換えで切り抜けられる",
+        "8": "口語表現・句動詞を自然に使う"
+      },
+      "grammar": {
+        "4": "時制・冠詞の誤りが頻発するが通じる",
+        "6": "誤りはあるが意味を損なわない",
+        "8": "誤りが稀。複文を使える"
+      },
+      "conversation_strategies": {
+        "4": "聞き返せない。沈黙する",
+        "6": "聞き返し・相づちができる",
+        "8": "話題転換・意見の保留ができる"
+      },
+      "listening": {
+        "4": "一回聞きで2問中0〜1問",
+        "6": "2問中1問＋大筋は説明できる",
+        "8": "2問正答＋細部も拾う"
+      },
+      "pronunciation": {
+        "4": "化けが毎レッスン複数",
+        "6": "化けは時々",
+        "8": "化けはほぼない"
+      }
+    },
+    "roles": {
+      "teacher": "毎回のレッスン・issues・評価・次回準備を担当。",
+      "planner": "計画見直し時に検証結果から中期方針を更新。"
+    },
+    "planning_review": {
+      "trigger": [
+        "lesson_countがplan.review_at_lessonに達したとき。",
+        "本人が方針見直しと言ったとき。",
+        "high上限に達し新たなhigh候補が出たとき。"
+      ],
+      "procedure": [
+        "前期のスコア差、talk_quality、解決issue、outside_practice実施を検証。",
+        "focus_skillsは1〜2個、入替は最大1個。根拠薄い判断は保留。",
+        "実生活で困った場面を優先してtopic_poolを5件にする。",
+        "review_at_lessonをlesson_count+5へ。lessons_learnedに根拠を残す。"
+      ],
+      "constraints": [
+        "評価点やmilestone達成をplannerが書き換えない。",
+        "固定指示は変更せず提案欄へ。"
+      ]
+    }
+  },
+  "profile": {
+    "name": "Koki",
+    "native_language": "ja",
+    "feedback_language": "ja",
+    "correction_timing": "inline_marked",
+    "correction_timing_options": [
+      "inline_marked",
+      "end_only"
+    ],
+    "input_mode_default": "voice",
+    "minutes_per_lesson": 20,
+    "lessons_per_week": null,
+    "interests": [
+      "AI・自動化・Google Colab",
+      "IT・サーバー運用",
+      "アメリカのドラマと人物描写",
+      "アメリカでの買い物・食生活"
+    ],
+    "target_content": [
+      "Breaking Badのようなアメリカのドラマ",
+      "アメリカの店員・住民との日常会話",
+      "スーパー・精肉店などの自然な口語英語"
+    ],
+    "notes": "米国在住。ITのサーバー保守、Microsoft関連業務、AIによる分析自動化を担当。速い自然発話・未知語・L/Rの聞き分けと通じやすさに悩む。本人は自分の英語の癖への具体的フィードバックと実生活での会話力向上を希望。週回数・訂正タイミングの希望は未確認。 厚切り肉を自宅でmediumに焼きたい意図の可能性があり、質問の取り違えとは断定しない。"
+  },
+  "vocabulary": [
+    {
+      "id": "v1",
+      "word": "contrast",
+      "meaning_ja": "対比・対照",
+      "example": "The contrast between Walter and Jesse is interesting.",
+      "status": "new",
+      "passes": 0,
+      "next_review_lesson": 2,
+      "priority": "normal",
+      "added_lesson": 1,
+      "source": "legacy"
+    },
+    {
+      "id": "v2",
+      "word": "sirloin",
+      "meaning_ja": "サーロイン",
+      "example": "I would like one pound of sirloin steak, please.",
+      "status": "new",
+      "passes": 0,
+      "next_review_lesson": 2,
+      "priority": "normal",
+      "added_lesson": 1,
+      "source": "legacy"
+    },
+    {
+      "id": "v3",
+      "word": "thick-cut",
+      "meaning_ja": "厚切りの",
+      "example": "Could I get a thick-cut steak?",
+      "status": "new",
+      "passes": 0,
+      "next_review_lesson": 2,
+      "priority": "normal",
+      "added_lesson": 1,
+      "source": "legacy"
+    },
+    {
+      "id": "v4",
+      "word": "thoughtful",
+      "meaning_ja": "思いやりのある・思慮深い",
+      "example": "Jesse becomes more thoughtful.",
+      "status": "new",
+      "passes": 0,
+      "next_review_lesson": 2,
+      "priority": "normal",
+      "added_lesson": 1,
+      "source": "legacy"
+    },
+    {
+      "id": "v5",
+      "word": "pound",
+      "meaning_ja": "ポンド（約454グラム）",
+      "example": "One pound is about 454 grams.",
+      "status": "new",
+      "passes": 0,
+      "next_review_lesson": 2,
+      "priority": "normal",
+      "added_lesson": 1,
+      "source": "legacy"
+    }
+  ],
+  "vocabulary_archive_count": 0,
+  "wins": [
+    {
+      "id": "w1",
+      "lesson": 1,
+      "note": "AIを仕事で使う理由を複数文で説明できた。"
+    },
+    {
+      "id": "w2",
+      "lesson": 1,
+      "note": "Breaking Badの登場人物の変化と対比を自分の意見として説明し、contrastを取り入れた。"
+    },
+    {
+      "id": "w3",
+      "lesson": 1,
+      "note": "分からない語に Which is which? と英語で確認でき、精肉店ロールプレイを継続できた。"
+    }
+  ],
+  "history": {
+    "summary": null,
+    "entries": [
+      {
+        "lesson": 1,
+        "date": "2026-11-11",
+        "mode": "voice",
+        "topic": "自己紹介・AIの仕事・Breaking Bad・精肉店の注文",
+        "new_words": [
+          "v1",
+          "v2",
+          "v3",
+          "v4",
+          "v5"
+        ],
+        "listening": {
+          "correct": null,
+          "total": null
+        },
+        "self_rating": 4,
+        "note": "自己評価3か4で未確定。formal listening未実施。厚切りとmediumは同時に成立し、誤解と断定しない。件数は旧会話の再監査による概数。",
+        "talk_quality": 3,
+        "issues_touched": [
+          "i1",
+          "i2",
+          "i3",
+          "i4",
+          "i5",
+          "i6",
+          "i7"
+        ],
+        "counts": {
+          "grammar_mistakes": 2,
+          "word_mistakes": 3,
+          "asked_words": 1
+        }
+      }
+    ]
+  },
+  "next_lesson": {
+    "type": "regular",
+    "topic": "米国の精肉店・スーパーで、速い質問を聞き取り注文する",
+    "focus": "店頭の一回聞きと自然な聞き返し。1分独話、数量表現、自然な語彙も確認。",
+    "review_words": [
+      "v1",
+      "v2",
+      "v3",
+      "v4",
+      "v5"
+    ],
+    "flexible": true,
+    "flexible_rule": "学習者が別の話題を希望したら topic は差し替える。focus と review_words は維持する。",
+    "carryover": [
+      "一回聞き小話4〜6文＋2問（前回未実施）",
+      "自己評価を3か4のどちらかに確定",
+      "週の希望回数と訂正タイミングを確認",
+      "60秒独話を測定",
+      "厚切りとmediumは別の希望だったか、必要なら確認"
+    ]
+  },
+  "plan": {
+    "period_start": 1,
+    "review_at_lesson": 3,
+    "target_milestone": "m1",
+    "focus_skills": [
+      "speaking_fluency",
+      "conversation_strategies"
+    ],
+    "topic_pool": [
+      "精肉店での注文・数量・カットの確認",
+      "スーパーで聞き取れない質問への対応",
+      "Breaking Badの人物比較と感想",
+      "IT・AI自動化を米国の同僚に説明",
+      "カフェ・レストランでの注文と聞き返し"
+    ],
+    "outside_practice": null,
+    "review_notes": "第1回診断で本人の優先事項が判明：米国生活の店頭会話、速い口語、未知語、L/Rへの不安。正式な計画見直しは第3回。現行の重点2スキルは維持し、練習題材を実生活に寄せた。聞き取りの正式評価は未実施。 再監査で厚さと焼き加減の混同を誤りと断定しないよう修正。",
+    "message_ja": "第1回は仕事とドラマについて長く説明できた。次回は精肉店・スーパーでの自然な会話を使い、短く答える力と聞き返す力を練習する。L/Rは本人の懸念として記録し、確証のない発音判定はしない。",
+    "history": [],
+    "focus_methods": [
+      "毎回冒頭に身近な話題の短い独話を入れ、1分間を目指す",
+      "実店舗のロールプレイで聞き取れない時の確認表現を自発的に使う",
+      "voiceでは4〜6文の一回聞き小話と2問を必ず実施し、聞き取り結果を記録する",
+      "短い店頭質問への即答と聞き返しを別途練習し、正式リスニング2問と混同しない"
+    ],
+    "lessons_learned": []
+  },
+  "roadmap": {
+    "current_milestone": "m1",
+    "milestones": [
+      {
+        "id": "m1",
+        "goal": "身近な話題を1分間止まらず話せる",
+        "judge": "AI",
+        "criteria": "Main中に60秒以上、聞き返しなしで独話できたのを2レッスンで観測",
+        "achieved_lesson": null
+      },
+      {
+        "id": "m2",
+        "goal": "聞き返し・言い換え依頼を英語でできる",
+        "judge": "AI",
+        "criteria": "未知語に対し英語で聞き返した回数が1レッスンに2回以上、2レッスン連続",
+        "achieved_lesson": null
+      },
+      {
+        "id": "m3",
+        "goal": "一回聞きの小話で内容質問2問正答",
+        "judge": "AI",
+        "criteria": "voiceレッスンで listening correct=2 が2回連続",
+        "achieved_lesson": null
+      },
+      {
+        "id": "m4",
+        "goal": "ドラマ1話を英語字幕で大筋理解",
+        "judge": "self",
+        "criteria": "Wrap-upで『今週見たもの』を聞き、学習者が英語で3文以上あらすじを説明できた",
+        "achieved_lesson": null
+      },
+      {
+        "id": "m5",
+        "goal": "3分間の雑談で聞き返し2回以内",
+        "judge": "AI",
+        "criteria": "Mainのうち3分間、✏️修正を除き聞き返し2回以内、2レッスン連続",
+        "achieved_lesson": null
+      },
+      {
+        "id": "m6",
+        "goal": "字幕なしでコンテンツを楽しめる",
+        "judge": "self",
+        "criteria": "学習者が字幕なしで見た作品について英語であらすじと感想を説明できた",
+        "achieved_lesson": null
+      }
+    ]
+  },
+  "end_of_lesson": {
+    "meaning": "AIの自己申告欄。学習者は次回冒頭でこれを確認する。",
+    "summary_ja": "Lesson 1の再監査：講師の誤解と未確定事項を分離。\n次回は実店舗の速い英語の聞き取り、聞き返し、自発的正用を優先。",
+    "skipped_updates": [
+      "週のレッスン回数、訂正タイミングの希望は未確認。",
+      "規定の4〜6文の一回聞き小話＋内容質問2問を実施できず、リスニング評価は保留。",
+      "60秒独話を計時していないためm1達成判定は保留。"
+    ],
+    "uncertain_judgements": [
+      "自己評価は3または4と発言。4は暫定記録なので次回確認。",
+      "L/Rやsirloinの発音に本人の懸念があるが、同一STT誤変換の反復がなく発音課題は確定できない。",
+      "初回の文法エラー出現回数は会話中の近似カウント。",
+      "「medium」は自宅での焼き加減を指した可能性が高く、質問意図の取り違えとしては扱わない。",
+      "sirloinの発音がL/Rの問題だという客観的証拠はない。",
+      "文法・語彙の出現回数は旧ログからの概数。"
+    ],
+    "suggestions": [
+      "7.1では学習者の自発的正用と復唱を区別し、復唱だけで課題解決としない。",
+      "講師の誤解や誤訂正は復習ノートの専用欄に残す。",
+      "正式リスニング2問と短い店頭応答を別タスクとして扱う。"
+    ],
+    "verification": {
+      "lesson_count": 1,
+      "vocabulary_total": 5,
+      "next_review_words_count": 5,
+      "active_issues": 7,
+      "high_priority": 2
+    },
+    "json_validity_checked": true,
+    "checklist": {
+      "listening_done_or_text_mode": false,
+      "review_words_used": false,
+      "real_world_asked": false,
+      "self_rating_integer": false,
+      "issues_linked": true,
+      "weak_points_rebuilt": true,
+      "review_note_output": true
+    }
+  },
+  "_schema_examples": {
+    "note": "以下は形式例であり実データではない。",
+    "issue": {
+      "id": "i<N>",
+      "area": "grammar|pronunciation|vocabulary|listening|fluency|strategy",
+      "status": "noticed|active|improving|resolved",
+      "correct_uses": "自発的正用の回数",
+      "prompted_uses": "講師の後に復唱した回数",
+      "evidence_types": [
+        "learner_report"
+      ]
+    },
+    "history_entry": {
+      "lesson": "<number>",
+      "issues_touched": [
+        "i<N>"
+      ],
+      "counts": {
+        "grammar_mistakes": "<integer>",
+        "word_mistakes": "<integer>",
+        "asked_words": "<integer>"
+      }
+    }
+  },
+  "current_ability": {
+    "cefr_estimate": null,
+    "provisional": true,
+    "provisional_rule": "assessment.history が2件以上になったら false",
+    "last_assessed_lesson": null,
+    "next_assessment_lesson": 3,
+    "skills": {
+      "speaking_fluency": {
+        "score": null,
+        "evidence": null
+      },
+      "vocabulary": {
+        "score": null,
+        "evidence": null
+      },
+      "grammar": {
+        "score": null,
+        "evidence": null
+      },
+      "conversation_strategies": {
+        "score": null,
+        "evidence": null
+      },
+      "listening": {
+        "score": null,
+        "evidence": null,
+        "voice_only": true,
+        "measured_by": "一回聞きの小話＋内容質問2問"
+      },
+      "pronunciation": {
+        "score": null,
+        "evidence": null,
+        "voice_only": true,
+        "confidence": "low",
+        "measured_by": "STT誤変換からの推定のみ。根拠として弱い"
+      }
+    },
+    "history": [],
+    "summary_ja": "AI業務やBreaking Badの人物比較を複数文で説明できる。\n三単現・冠詞・自然な語の選択に改善余地。速い自然発話とL/Rは本人申告で、客観的測定は未実施。\n第1回の再監査で講師の誤解を学習者の課題から分離。",
+    "strengths": [
+      "仕事・ドラマの説明を自分の言葉で展開できる",
+      "Which is which?と自発的に聞き返せた"
+    ]
+  },
+  "issues": {
+    "scope": "学習上の課題のみ。根拠・自発的正用・復唱を区別。",
+    "active": [
+      {
+        "id": "i1",
+        "area": "grammar",
+        "category": "三単現の-s",
+        "title": "三単現の-sが抜ける",
+        "pattern": "単数主語の現在形で-sを落とす",
+        "examples": [
+          {
+            "lesson": 1,
+            "wrong": "Walter become dark",
+            "right": "Walter becomes darker."
+          }
+        ],
+        "occurrences": 2,
+        "correct_uses": 0,
+        "prompted_uses": 0,
+        "lessons_seen": [
+          1
+        ],
+        "last_seen_lesson": 1,
+        "last_correct_lesson": null,
+        "status": "active",
+        "priority": "medium",
+        "countermeasure": "人物の変化をhe/she+動詞で3文説明",
+        "elicitation": "What does Jesse do differently from Walter?",
+        "practice_log": [],
+        "tried_methods": [],
+        "source": "ai_noticed",
+        "confidence": "high",
+        "created_lesson": 1,
+        "regressed": false
+      },
+      {
+        "id": "i2",
+        "area": "grammar",
+        "category": "冠詞・数量表現",
+        "title": "数量表現の冠詞と単複",
+        "pattern": "a pound of / two pounds of を安定させる",
+        "examples": [
+          {
+            "lesson": 1,
+            "wrong": "the a pounds of the sirloin",
+            "right": "a pound of sirloin"
+          }
+        ],
+        "occurrences": 1,
+        "correct_uses": 0,
+        "prompted_uses": 0,
+        "lessons_seen": [
+          1
+        ],
+        "last_seen_lesson": 1,
+        "last_correct_lesson": null,
+        "status": "active",
+        "priority": "medium",
+        "countermeasure": "数量を変えて肉を3回注文する",
+        "elicitation": "How much sirloin would you like?",
+        "practice_log": [],
+        "tried_methods": [],
+        "source": "ai_noticed",
+        "confidence": "high",
+        "created_lesson": 1,
+        "regressed": false
+      },
+      {
+        "id": "i3",
+        "area": "listening",
+        "category": "速い自然発話",
+        "title": "店員の速い英語が聞き取れない",
+        "pattern": "本人申告。正式な一回聞きテスト未実施",
+        "examples": [],
+        "occurrences": 1,
+        "correct_uses": 0,
+        "prompted_uses": 0,
+        "lessons_seen": [
+          1
+        ],
+        "last_seen_lesson": 1,
+        "last_correct_lesson": null,
+        "status": "active",
+        "priority": "high",
+        "countermeasure": "店頭の一回聞き小話＋内容2問、結果を保存",
+        "elicitation": "Listen once: What did the clerk ask?",
+        "practice_log": [],
+        "tried_methods": [],
+        "source": "learner_reported",
+        "confidence": "low",
+        "created_lesson": 1,
+        "regressed": false
+      },
+      {
+        "id": "i4",
+        "area": "strategy",
+        "category": "聞き返し",
+        "title": "聞き取れない時の確認表現を増やす",
+        "pattern": "Which is which? は自発的に使えたが実生活で困ると申告",
+        "examples": [],
+        "occurrences": 1,
+        "correct_uses": 1,
+        "prompted_uses": 0,
+        "lessons_seen": [
+          1
+        ],
+        "last_seen_lesson": 1,
+        "last_correct_lesson": 1,
+        "status": "active",
+        "priority": "high",
+        "countermeasure": "Sorry, could you say that again? / Did you say...? を店頭で使う",
+        "elicitation": "Sorry, did you say thick-cut or thin-cut?",
+        "practice_log": [],
+        "tried_methods": [],
+        "source": "learner_reported",
+        "confidence": "medium",
+        "created_lesson": 1,
+        "regressed": false
+      },
+      {
+        "id": "i5",
+        "area": "pronunciation",
+        "category": "L/R",
+        "title": "L/Rを含む語が通じにくい不安",
+        "pattern": "sirloinなど。原因がL/Rかは未確定",
+        "examples": [],
+        "occurrences": 1,
+        "correct_uses": 0,
+        "prompted_uses": 0,
+        "lessons_seen": [
+          1
+        ],
+        "last_seen_lesson": 1,
+        "last_correct_lesson": null,
+        "status": "active",
+        "priority": "medium",
+        "countermeasure": "実店舗で伝わったかと聞き返された語を記録する",
+        "elicitation": "Which words were difficult to say at the store?",
+        "practice_log": [],
+        "tried_methods": [],
+        "source": "learner_reported",
+        "confidence": "low",
+        "created_lesson": 1,
+        "regressed": false,
+        "evidence_types": [
+          "learner_report"
+        ]
+      },
+      {
+        "id": "i6",
+        "area": "fluency",
+        "category": "フィラー・言い直し",
+        "title": "フィラーと言い直しが多い",
+        "pattern": "um/how can I sayなどで説明が長くなる",
+        "examples": [
+          {
+            "lesson": 1,
+            "wrong": "um... how can I say...",
+            "right": "Let me put it this way."
+          }
+        ],
+        "occurrences": 1,
+        "correct_uses": 0,
+        "prompted_uses": 0,
+        "lessons_seen": [
+          1
+        ],
+        "last_seen_lesson": 1,
+        "last_correct_lesson": null,
+        "status": "noticed",
+        "priority": "medium",
+        "countermeasure": "まず短い3文で言い切り、その後詳細を足す",
+        "elicitation": "Can you describe your job in three sentences?",
+        "practice_log": [],
+        "tried_methods": [],
+        "source": "ai_noticed",
+        "confidence": "medium",
+        "created_lesson": 1,
+        "regressed": false
+      },
+      {
+        "id": "i7",
+        "area": "vocabulary",
+        "category": "語の選び間違い",
+        "title": "自然な語の選択とコロケーション",
+        "pattern": "AI thingsやlisten my Englishなどの表現を改善",
+        "examples": [
+          {
+            "lesson": 1,
+            "wrong": "people couldn’t listen my English",
+            "right": "people couldn’t understand my English"
+          },
+          {
+            "lesson": 1,
+            "wrong": "AI things",
+            "right": "AI tools"
+          }
+        ],
+        "occurrences": 2,
+        "correct_uses": 0,
+        "prompted_uses": 0,
+        "lessons_seen": [
+          1
+        ],
+        "last_seen_lesson": 1,
+        "last_correct_lesson": null,
+        "status": "active",
+        "priority": "medium",
+        "countermeasure": "自分の仕事と聞き取りの悩みを自然な語で2文ずつ言う",
+        "elicitation": "What do you use AI tools for, and when do people have trouble understanding you?",
+        "practice_log": [],
+        "tried_methods": [],
+        "source": "ai_noticed",
+        "confidence": "high",
+        "created_lesson": 1,
+        "regressed": false
+      }
+    ],
+    "resolved": [],
+    "dismissed_count": 0
+  },
+  "weak_points": {
+    "updated_lesson": 1,
+    "grammar": [
+      {
+        "category": "三単現の-s",
+        "issues": [
+          "i1"
+        ],
+        "occurrences": 2,
+        "trend": "new"
+      },
+      {
+        "category": "冠詞・数量表現",
+        "issues": [
+          "i2"
+        ],
+        "occurrences": 1,
+        "trend": "new"
+      }
+    ],
+    "pronunciation": [
+      {
+        "category": "L/R",
+        "issues": [
+          "i5"
+        ],
+        "occurrences": 1,
+        "trend": "new",
+        "confidence": "low",
+        "note": "本人申告のみ。原因未確認"
+      }
+    ],
+    "vocabulary": [
+      {
+        "category": "語の選び間違い",
+        "issues": [
+          "i7"
+        ],
+        "occurrences": 2,
+        "trend": "new"
+      }
+    ]
+  },
+  "real_world_log": []
+}
