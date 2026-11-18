@@ -226,3 +226,8 @@
 | AGENTS.md、README.md が循環JSONを正本と書いている | プロンプト、レビュー用ログ、ノート、latest.json の構成に書き直す |
 | `scripts/validate_learning_state.py` が cycle_path を検証している | 新しい latest.json の形式に合わせる |
 | `first-prompt.json`、`2026/11/12/english_learning_cycle.json` | 過去の記録として残し、読み込みの起点から外す |
+
+## 2026-11-18 開始時の参照先の照合
+
+- `latest.json` は 2026-11-12（Lesson 2）を指していた。実績がある新しいノートは `2026/11/17/17.md`（2026-11-17、Lesson 4）で、11/18はLesson 5として開始した。
+- AGENTS.md と README.md の旧循環JSONを正本とする記述は、提示されたv3.1の日次ノートを正本とするルールと食い違う。今回はv3.1と日次ノートの復習表を使用した。既存の運用文書の修正は未実施。
